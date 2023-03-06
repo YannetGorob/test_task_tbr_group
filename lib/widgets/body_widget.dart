@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import 'package:test_task_tbr_group/api/country_api.dart';
 import 'package:test_task_tbr_group/api/geo_api.dart';
@@ -22,6 +22,10 @@ class _BodyState extends State<Body> {
   GetCountries? getCountries;
   Future? future;
   bool _isBottomActive = false;
+  var maskFormatter = MaskTextInputFormatter(
+      mask: '(###) ###-####',
+      filter: {"#": RegExp(r'[0-9]')},
+      type: MaskAutoCompletionType.lazy);
 
   @override
   void initState() {
@@ -40,9 +44,7 @@ class _BodyState extends State<Body> {
             case ConnectionState.waiting:
               return const Center(child: CircularProgressIndicator());
             case ConnectionState.done:
-              if (getCountries == null) {
-                getCountries = snapshot.data!;
-              }
+              getCountries ??= snapshot.data!;
               return SafeArea(
                 child: Padding(
                   padding: const EdgeInsets.only(
@@ -157,10 +159,7 @@ class _BodyState extends State<Body> {
       onChanged: (value) {
         _changeButton(value);
       },
-      inputFormatters: [
-        FilteringTextInputFormatter.digitsOnly,
-        MaskPhoneNumber(),
-      ],
+      inputFormatters: [maskFormatter],
       controller: phoneNumberController,
       cursorColor: kActiveTextColor,
       keyboardType: TextInputType.number,
@@ -205,9 +204,10 @@ class _BodyState extends State<Body> {
   }
 
   void _changeButton(String value) {
-    if (value.length == 14 && !_isBottomActive) {
+    if (value.length == maskFormatter.getMask()!.length && !_isBottomActive) {
       _setIsActiveButton(true);
-    } else if (value.length != 14 && _isBottomActive) {
+    } else if (value.length != maskFormatter.getMask()!.length &&
+        _isBottomActive) {
       _setIsActiveButton(false);
     }
   }
@@ -231,8 +231,7 @@ class _BodyState extends State<Body> {
         "Entered phone number",
         style: TextStyle(fontWeight: FontWeight.w700),
       ),
-      content: Text(
-          '${getCountries!.activeCountry.countryCode!} $phoneNumber',
+      content: Text('${getCountries!.activeCountry.countryCode!} $phoneNumber',
           style: const TextStyle(fontSize: 16)),
       actions: [
         okButton,
@@ -245,38 +244,5 @@ class _BodyState extends State<Body> {
         return alert;
       },
     );
-  }
-}
-
-class MaskPhoneNumber extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(
-      TextEditingValue oldValue, TextEditingValue newValue) {
-    String mask = '(xxx) xxx-xxxx';
-    int position = newValue.selection.end;
-    var listnumbers = newValue.text.split('');
-    for (var element in listnumbers) {
-      mask = mask.replaceFirst('x', element);
-    }
-
-    if (listnumbers.isNotEmpty) position++;
-
-    if (listnumbers.length > 3) position += 2;
-
-    if (listnumbers.length > 6) position++;
-
-    if (listnumbers.length >= 10) position = mask.length;
-
-    if (listnumbers.isEmpty) {
-      mask = '';
-    } else if (mask.contains('x')) {
-      mask = mask.substring(0, mask.indexOf('x'));
-      if (mask.endsWith('-')) {
-        mask = mask.substring(0, mask.indexOf('-'));
-      }
-    }
-
-    return TextEditingValue(
-        text: mask, selection: TextSelection.collapsed(offset: position));
   }
 }
