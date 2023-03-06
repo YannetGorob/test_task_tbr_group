@@ -3,8 +3,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import 'package:test_task_tbr_group/api/country_api.dart';
+import 'package:test_task_tbr_group/api/geo_api.dart';
 import 'package:test_task_tbr_group/constants.dart';
 import 'package:test_task_tbr_group/models/country_model.dart';
+import 'package:test_task_tbr_group/models/get_countries.dart';
+import 'package:test_task_tbr_group/services/country_service.dart';
 import 'package:test_task_tbr_group/widgets/list_of_country_codes.dart';
 
 class Body extends StatefulWidget {
@@ -16,14 +19,13 @@ class Body extends StatefulWidget {
 
 class _BodyState extends State<Body> {
   TextEditingController phoneNumberController = TextEditingController();
-  List<CountryModel> listCountrys = [];
-  CountryModel? selectedCountry;
+  GetCountries? getCountries;
   Future? future;
   bool _isBottomActive = false;
 
   @override
   void initState() {
-    future = CountryApi().getCountry();
+    future = CountryService(CountryApi(), GeoApi()).getCountries();
     super.initState();
   }
 
@@ -38,10 +40,8 @@ class _BodyState extends State<Body> {
             case ConnectionState.waiting:
               return const Center(child: CircularProgressIndicator());
             case ConnectionState.done:
-              if (selectedCountry == null) {
-                listCountrys = snapshot.data!;
-                selectedCountry = listCountrys
-                    .firstWhere((element) => element.name == 'Ukraine');
+              if (getCountries == null) {
+                getCountries = snapshot.data!;
               }
               return SafeArea(
                 child: Padding(
@@ -98,12 +98,12 @@ class _BodyState extends State<Body> {
         backgroundColor: Colors.transparent,
         builder: (context) {
           return ListOfCountryCodes(
-            originaListCountries: listCountrys,
+            originaListCountries: getCountries!.listCountries,
           );
         });
     if (result is CountryModel) {
       setState(() {
-        selectedCountry = result;
+        getCountries!.activeCountry = result;
       });
     }
   }
@@ -131,7 +131,7 @@ class _BodyState extends State<Body> {
                 width: 38,
                 decoration: BoxDecoration(
                   image: DecorationImage(
-                      image: NetworkImage(selectedCountry!.flag),
+                      image: NetworkImage(getCountries!.activeCountry.flag),
                       fit: BoxFit.cover),
                   borderRadius: const BorderRadius.all(
                     Radius.circular(6.0),
@@ -142,7 +142,7 @@ class _BodyState extends State<Body> {
             const SizedBox(width: 5),
             Expanded(
               child: Text(
-                selectedCountry!.countryCode!.toString(),
+                getCountries!.activeCountry.countryCode!.toString(),
                 style: const TextStyle(fontSize: 15, color: kActiveTextColor),
               ),
             ),
@@ -231,7 +231,8 @@ class _BodyState extends State<Body> {
         "Entered phone number",
         style: TextStyle(fontWeight: FontWeight.w700),
       ),
-      content: Text('${selectedCountry!.countryCode!} $phoneNumber',
+      content: Text(
+          '${getCountries!.activeCountry.countryCode!} $phoneNumber',
           style: const TextStyle(fontSize: 16)),
       actions: [
         okButton,

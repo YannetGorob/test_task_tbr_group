@@ -11,6 +11,7 @@ const double kDefaultPadding = 20.0;
 
 class AppSettings {
   static const String domain = 'https://restcountries.com/';
+  static const String geoDomain = 'https://api.ipregistry.co/';
 
   static http.Client client = http.Client();
 }
