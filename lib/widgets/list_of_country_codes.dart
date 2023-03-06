@@ -155,7 +155,10 @@ class _ListOfCountryCodesState extends State<ListOfCountryCodes> {
             setState(() {
               listCountries = widget.originaListCountries
                   .where((element) =>
-                      element.name.toLowerCase().contains(value.toLowerCase()))
+                      element.name
+                          .toLowerCase()
+                          .contains(value.toLowerCase()) ||
+                      element.countryCode.toString().contains(value))
                   .toList();
             });
           },
